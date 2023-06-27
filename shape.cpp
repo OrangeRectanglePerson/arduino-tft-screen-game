@@ -1,5 +1,5 @@
+
 #include "Arduino.h"
-#include <Adafruit_ST7735.h> // Hardware-specific library for ST7735
 #include "shape.hh"
 
 void editPoint(Point* p, double x, double y){
@@ -48,44 +48,7 @@ void moveShape(Shape* s, double x, double y){
   s->centerX += x; s->centerY += y;  
 }
 
-void drawShapeRespectToCenter(Adafruit_ST7735* screen, Shape* s, double centerPtX, double centerPtY, bool clearScreen){
-  if(clearScreen) screen->fillScreen(ST77XX_BLACK); //clear screen
 
-  if(s->connectAllPoints){
-    for(byte i = 0; i < s->numOfPoints-1; i++){
-      for(byte j = i+1; j < s->numOfPoints; j++){
-        byte startPointIndex = i;
-        byte endPointIndex = j;
-  
-        int16_t x0 = centerPtX + s->centerX + s->points[startPointIndex]->x;
-        int16_t y0 = centerPtY + s->centerY + s->points[startPointIndex]->y;
-        int16_t x1 = centerPtX + s->centerX + s->points[endPointIndex]->x;
-        int16_t y1 = centerPtY + s->centerY + s->points[endPointIndex]->y;
-  
-        screen->drawLine(x0, y0, x1, y1, s->color); 
-
-      } 
-    } 
-  }
-  else {    
-    for(byte i = 0; i < s->numOfPoints; i++){
-      byte startPointIndex = i;
-      byte endPointIndex = (i+1 != s->numOfPoints) ? i+1 : 0;
-
-      int16_t x0 = centerPtX + s->centerX + s->points[startPointIndex]->x;
-      int16_t y0 = centerPtY + s->centerY + s->points[startPointIndex]->y;
-      int16_t x1 = centerPtX + s->centerX + s->points[endPointIndex]->x;
-      int16_t y1 = centerPtY + s->centerY + s->points[endPointIndex]->y;
-
-      screen->drawLine(x0, y0, x1, y1, s->color); 
-
-    } 
-  }
-}
-
-void drawShape(Adafruit_ST7735* screen, Shape* s, bool clearScreen){  
-  drawShapeRespectToCenter(screen, s, 0, 0, clearScreen);
-}
 
 double distanceBetweenPoints(Point* subjectPoint, Point* fromPoint){
   //pythoagoras thoerem

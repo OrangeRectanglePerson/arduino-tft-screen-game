@@ -25,9 +25,7 @@ void translateShape(Shape* s, double x0, double y0, double x1, double y1);
 
 void moveShape(Shape*s, double x, double y);
 
-void drawShapeRespectToCenter(Adafruit_ST7735* screen, Shape* s, double centerPtX, double centerPtY, bool clearScreen);
 
-void drawShape(Adafruit_ST7735* screen, Shape* s, bool clearScreen);
 
 double distanceBetweenPoints(Point* subjectPoint, Point* fromPoint);
 

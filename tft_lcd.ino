@@ -1,16 +1,68 @@
 
-#include <Adafruit_GFX.h>    // Core graphics library
-#include <Adafruit_ST7735.h> // Hardware-specific library for ST7735
-#include <Adafruit_ST7789.h> // Hardware-specific library for ST7789
 #include <SPI.h>
+#include <PDQ_GFX.h>    // Core graphics library
+#include "PDQ_ST7735_config.h"
+#include <PDQ_ST7735.h> // Hardware-specific library for ST7735
 #include "shape.hh"
 #include "sprite.hh"
 
-#define CS 9
-#define DC 10
+
+#include "PDQ_wrapper.hh"
+
+void drawShapeRespectToCenter(PDQ_ST7735* screen, Shape* s, double centerPtX, double centerPtY, bool clearScreen){
+  if(clearScreen) screen->fillScreen(ST7735_BLACK); //clear screen
+
+  if(s->connectAllPoints){
+    for(byte i = 0; i < s->numOfPoints-1; i++){
+      for(byte j = i+1; j < s->numOfPoints; j++){
+        byte startPointIndex = i;
+        byte endPointIndex = j;
+  
+        int16_t x0 = centerPtX + s->centerX + s->points[startPointIndex]->x;
+        int16_t y0 = centerPtY + s->centerY + s->points[startPointIndex]->y;
+        int16_t x1 = centerPtX + s->centerX + s->points[endPointIndex]->x;
+        int16_t y1 = centerPtY + s->centerY + s->points[endPointIndex]->y;
+  
+        screen->drawLine(x0, y0, x1, y1, s->color); 
+
+      } 
+    } 
+  }
+  else {    
+    for(byte i = 0; i < s->numOfPoints; i++){
+      byte startPointIndex = i;
+      byte endPointIndex = (i+1 != s->numOfPoints) ? i+1 : 0;
+
+      int16_t x0 = centerPtX + s->centerX + s->points[startPointIndex]->x;
+      int16_t y0 = centerPtY + s->centerY + s->points[startPointIndex]->y;
+      int16_t x1 = centerPtX + s->centerX + s->points[endPointIndex]->x;
+      int16_t y1 = centerPtY + s->centerY + s->points[endPointIndex]->y;
+
+      screen->drawLine(x0, y0, x1, y1, s->color); 
+
+    } 
+  }
+}
+
+void drawShape(PDQ_ST7735* screen, Shape* s, bool clearScreen){  
+  drawShapeRespectToCenter(screen, s, 0, 0, clearScreen);
+}
+
+
+void drawSprite(PDQ_ST7735* screen, Sprite* s, bool clearScreen){
+
+  drawShapeRespectToCenter(screen, s->shapes[0], s->centerX, s->centerY, clearScreen);
+
+  
+  for(byte i = 1; i < s->numOfShapes; i++){
+    drawShapeRespectToCenter(screen, s->shapes[i], s->centerX, s->centerY, false);
+  }
+ 
+}
+
 #define RESET 0
 
-#define FPS 5
+#define FPS 10
 #define BCPS 25  //how many times to check for button pressed events in a second
 #define PLAYERWIDTH 15
 
@@ -27,8 +79,7 @@ struct ScriptSentences {
 
 const ScriptSentences scriptSentences PROGMEM ;
 
-
-Adafruit_ST7735* tft = new Adafruit_ST7735(CS, DC, RESET);
+PDQ_ST7735* tft = new PDQ_ST7735();
 unsigned long lastrefresh;  //store millis() of last time screen refreshed
 
 byte playerCoords[2] = {65,0};
@@ -63,9 +114,8 @@ void setup() {
   // put your setup code here, to run once:
 
   lastrefresh = millis();
-  tft->initR(INITR_144GREENTAB);
 
-  arrow = newShape(7, 90, 90, false, ST77XX_GREEN);
+  arrow = newShape(7, 90, 90, false, ST7735_GREEN);
   editPoint(arrow->points[0], 0, 20)   ;
   editPoint(arrow->points[1], -20, 0)  ;
   editPoint(arrow->points[2], -8, 0)   ;
@@ -85,7 +135,7 @@ void setup() {
   Shape* &s6 = sprite->shapes[5]; // mid window
   Shape* &s7 = sprite->shapes[6]; // back window
 
-  s1 = newShape(6, 0, 0, false, ST77XX_RED);
+  s1 = newShape(6, 0, 0, false, ST7735_RED);
   editPoint(s1->points[0], 50, 0)    ;
   editPoint(s1->points[1], 50, -20)  ;
   editPoint(s1->points[2], 40, -20)  ;
@@ -93,37 +143,37 @@ void setup() {
   editPoint(s1->points[4], -60, -40) ;
   editPoint(s1->points[5], -60, 0)   ;
 
-  s2 = newShape(6, 30, 0, true, ST77XX_WHITE);
+  s2 = newShape(6, 30, 0, true, ST7735_WHITE);
 
   for(int i = 0; i < s2->numOfPoints; i++){
     editPoint(s2->points[i], 10*cos((2*PI/s2->numOfPoints)*i), 10*sin((2*PI/s2->numOfPoints)*i));
   }
 
-  s3 = newShape(6, -30, 0, true, ST77XX_WHITE);
+  s3 = newShape(6, -30, 0, true, ST7735_WHITE);
 
   for(int i = 0; i < s3->numOfPoints; i++){
     editPoint(s3->points[i], 10*cos((2*PI/s3->numOfPoints)*i), 10*sin((2*PI/s3->numOfPoints)*i));
   }
 
-  s4 = newShape(4, 10, -20, false, ST77XX_BLUE);
+  s4 = newShape(4, 10, -20, false, ST7735_BLUE);
   editPoint(s4->points[0], 8, 16)    ;
   editPoint(s4->points[1], -8, 16)  ;
   editPoint(s4->points[2], -8, -16)  ;
   editPoint(s4->points[3], 8, -16)  ;
 
-  s5 = newShape(4, -10, -30, false, ST77XX_BLUE);
+  s5 = newShape(4, -10, -30, false, ST7735_BLUE);
 
   for(int i = 0; i < s5->numOfPoints; i++){
     editPoint(s5->points[i], 8*cos((2*PI/s5->numOfPoints)*i+PI/4), 8*sin((2*PI/s5->numOfPoints)*i+PI/4));
   }
 
-  s6 = newShape(4, -30, -30, false, ST77XX_BLUE);
+  s6 = newShape(4, -30, -30, false, ST7735_BLUE);
 
   for(int i = 0; i < s6->numOfPoints; i++){
     editPoint(s6->points[i], 8*cos((2*PI/s6->numOfPoints)*i+PI/4), 8*sin((2*PI/s6->numOfPoints)*i+PI/4));
   }
 
-  s7 = newShape(4, -50, -30, false, ST77XX_BLUE);
+  s7 = newShape(4, -50, -30, false, ST7735_BLUE);
 
   for(int i = 0; i < s7->numOfPoints; i++){
     editPoint(s7->points[i], 8*cos((2*PI/s7->numOfPoints)*i+PI/4), 8*sin((2*PI/s7->numOfPoints)*i+PI/4));
@@ -137,11 +187,13 @@ void setup() {
   for(int i = 0; i < ps1->numOfPoints; i++){
     editPoint(ps1->points[i], 8*cos((2*PI/ps1->numOfPoints)*i), 8*sin((2*PI/ps1->numOfPoints)*i));
   }
-  ps2 = newShape(4, 5, 0, false, ST77XX_CYAN);
+  ps2 = newShape(4, 5, 0, false, ST7735_CYAN);
   editPoint(ps2->points[0], 0, 0)     ;
   editPoint(ps2->points[1], 5, 20)    ;
   editPoint(ps2->points[2], -15, 20)  ;
   editPoint(ps2->points[3], -10, 0)   ;
+
+  tft->begin();
 
   pinMode(A0, INPUT_PULLUP); //left
   pinMode(A1, INPUT_PULLUP); //right
@@ -206,7 +258,7 @@ void firstDraw(){
 
   /*
   tft->setCursor(0, 0);
-  tft->setTextColor(ST77XX_WHITE);
+  tft->setTextColor(ST7735_WHITE);
   tft->setTextSize(2);
   tft->print(shape->numOfPoints);
   */
@@ -238,7 +290,7 @@ void draw(){
   drawShape(tft, arrow, true);
   
   
-  drawText_P(0,0,ST77XX_WHITE,1,scriptSentences.a);
+  drawText_P(0,0,ST7735_WHITE,1,scriptSentences.a);
   tft->print(((String) counter)); 
 
   Point* playerCenter =  malloc(sizeof(Point)); Point* busCenter =  malloc(sizeof(Point)); 
@@ -304,7 +356,7 @@ void drawText(int16_t x, int16_t y, uint16_t textColor, uint8_t textSize, char* 
 void drawTextBox(char* text){
   //make the textbox
   /*
-  Shape* textbox = newShape(8, 5, 90, false, ST77XX_WHITE);
+  Shape* textbox = newShape(8, 5, 90, false, ST7735_WHITE);
   editPoint(textbox->points[0], 0, 5)     ;
   editPoint(textbox->points[1], 0, 25)  ;
   editPoint(textbox->points[2], 5, 30)  ;
@@ -315,11 +367,11 @@ void drawTextBox(char* text){
   editPoint(textbox->points[7], 5, 0)    ;
 */  
   
-  tft->fillRoundRect(5, 90, 118, 33, 7, ST77XX_BLACK);
-  tft->drawRoundRect(5, 90, 118, 33, 7, ST77XX_WHITE);
+  tft->fillRoundRect(5, 90, 118, 33, 7, ST7735_BLACK);
+  tft->drawRoundRect(5, 90, 118, 33, 7, ST7735_WHITE);
 
   //create the text
-  drawText(0,95-10,ST77XX_WHITE,1,text,10);
+  drawText(0,95-10,ST7735_WHITE,1,text,10);
 
   //destory shape object used to create the text box
   //destroyShape(textbox);
